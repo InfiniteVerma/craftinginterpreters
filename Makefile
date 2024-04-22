@@ -1,41 +1,57 @@
-# Makefile for Lox interpreter
+# Set the Java compiler and flags
+JC = javac
+JFLAGS = -g -d bin -sourcepath src
 
-# Compiler
-JAVAC = javac
-# Compiler flags
-JFLAGS = -g
+# Set the Java interpreter and run flags
+JVM = java
+RFLAGS = -cp bin
 
-# Source directory
-SRC_DIR = src
-# Output directory
-OUT_DIR = out
-# Main class
-MAIN_CLASS = com.craftinginterpreters.lox.Lox
+# Set the source and target directories
+SRCDIR = src
+BINDIR = bin
 
-# Java source files
-SRCS := $(wildcard $(SRC_DIR)/**/**/**/*.java)
-# Compiled class files
-CLASSES := $(patsubst $(SRC_DIR)/%.java,$(OUT_DIR)/%.class,$(SRCS))
+# Set the package and main class name
+PACKAGE = com/craftinginterpreters/lox
+MAIN_CLASS = Lox
 
-# Default target
-.PHONY: all
-all: $(OUT_DIR) $(CLASSES)
+# Define the source files
+SOURCES := $(wildcard $(SRCDIR)/$(PACKAGE)/*.java)
 
-# Compile Java source files
-$(OUT_DIR)/%.class: $(SRC_DIR)/%.java
-	$(JAVAC) $(JFLAGS) -d $(OUT_DIR) $(filter %.java,$^)
+# Define the object files
+OBJECTS := $(SOURCES:$(SRCDIR)/%.java=$(BINDIR)/%.class)
 
-# Create output directory if it doesn't exist
-$(OUT_DIR):
-	mkdir -p $(OUT_DIR)
+# Rule for running GenerateAst class
+#run_generate_ast:
+#		$(JVM) $(RFLAGS) com.craftinginterpreters.tool.GenerateAst $(SRCDIR)/com/craftinginterpreters/lox
 
-# Run the Lox interpreter
-.PHONY: run
-run: all
-	java -cp $(OUT_DIR) $(MAIN_CLASS)
+# Rule for building Java class files
+$(BINDIR)/%.class: $(SRCDIR)/%.java
+		@mkdir -p $(@D)
+		$(JC) $(JFLAGS) $<
 
-# Clean up
-.PHONY: clean
+# Compilation step for GenerateAst class
+#$(BINDIR)/com/craftinginterpreters/tool/GenerateAst.class: $(SRCDIR)/com/craftinginterpreters/tool/GenerateAst.java
+#		@mkdir -p $(@D)
+#		$(JC) $(JFLAGS) $<
+
+# Compile target
+compile: $(OBJECTS) #$(BINDIR)/com/craftinginterpreters/tool/GenerateAst.class .
+
+# Run target
+run: compile
+		$(JVM) $(RFLAGS) $(PACKAGE).$(MAIN_CLASS)
+
+# Run inside gdb target
+debug: compile
+		gdb --args $(JVM) $(RFLAGS) $(PACKAGE).$(MAIN_CLASS)
+
+# Target to print the source files
+print_sources:
+		@echo $(SOURCES)
+
+# Clean target
 clean:
-	rm -rf $(OUT_DIR)
+		@rm -rf $(BINDIR)
 
+# PHONY targets
+.PHONY: compile run debug print_sources clean
